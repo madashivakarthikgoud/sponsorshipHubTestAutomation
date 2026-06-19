@@ -1,14 +1,41 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# ====================================================================
+# 1. BUILD OUTPUTS & MAVEN (Fixed from original)
+# ====================================================================
+**/target/
+**/build/
 .kotlin
+!.mvn/wrapper/maven-wrapper.jar
 
+# ====================================================================
+# 2. TESTNG & AUTOMATION ARTIFACTS
+# ====================================================================
+test-output/
+**/test-screenshots/
+**/screenshots/
+selenium-server.log
+.chromedriver/
+.geckodriver/
+.wdm/
+
+# ====================================================================
+# 3. LOGGING OUTPUT (Log4j)
+# ====================================================================
+logs/
+*.log
+
+# ====================================================================
+# 4. REPORTING ARTIFACTS (ExtentReports)
+# ====================================================================
+# Prevents pushing local HTML run reports to GitHub
+extent-reports/
+Reports/
+*.html
+
+# ====================================================================
+# 5. IDE CONFIGURATIONS (IntelliJ, Eclipse, NetBeans, VS Code)
+# ====================================================================
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -18,7 +45,7 @@ target/
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
@@ -28,12 +55,12 @@ target/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
+# ====================================================================
+# 6. SYSTEM FILES
+# ====================================================================
 .DS_Store
+Thumbs.db
