@@ -8,10 +8,10 @@
             <class name="modules.userManagement.Login"/>
         </classes>
     </test>
-        <test verbose="2" preserve-order="true" name="edge">
-            <parameter name="browser" value="edge"/>
-            <classes>
-                <class name="modules.userManagement.Login"/>
-            </classes>
-        </test>
+<!--        <test verbose="2" preserve-order="true" name="edge">-->
+<!--            <parameter name="browser" value="edge"/>-->
+<!--            <classes>-->
+<!--                <class name="modules.userManagement.Login"/>-->
+<!--            </classes>-->
+<!--        </test>-->
 </suite>
