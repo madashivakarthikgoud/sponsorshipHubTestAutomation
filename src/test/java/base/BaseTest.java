@@ -32,13 +32,13 @@ public class BaseTest{
         driver.get("https://sponsorship-front.netlify.app/login");
         driver.manage().window().maximize();
     }
-
-    @AfterClass
-    public void closeDriver(){
-        if(driver!=null){
-            driver.quit();
-        }
-    }
+//
+//    @AfterClass
+//    public void closeDriver(){
+//        if(driver!=null){
+//            driver.quit();
+//        }
+//    }
 
     public String randomUserName(){
         return RandomStringUtils.randomAlphabetic(5);

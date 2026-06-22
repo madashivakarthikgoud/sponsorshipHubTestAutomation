@@ -17,7 +17,7 @@ public class SignUpPage extends BasePage {
 
     @FindBy(xpath="//input[@id='mat-input-3' or @type='email']") WebElement userEmailInput;
 
-    @FindBy(xpath="//input[@id='mat-input-4' or @type='password']") WebElement userPasswordInput;
+    @FindBy(xpath="//input[@placeholder='Create a password']") WebElement userPasswordInput;
 
     @FindBy(id="mat-select-0") WebElement roleSelectInput;
 
