@@ -32,7 +32,6 @@ public class LoginPage extends BasePage{
     public void clickLoginBtn(){
         loginbtn.click();
     }
-
     public void clickSignupBtn(){
         wait.until(ExpectedConditions.elementToBeClickable(signupBtn)).click();
     }

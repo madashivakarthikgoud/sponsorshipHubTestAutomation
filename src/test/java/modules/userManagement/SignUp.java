@@ -23,6 +23,9 @@ public class SignUp extends BaseTest {
         signUpPage.clickCreateAccountBtn();
         wait.until(ExpectedConditions.urlContains("dashboard"));
         Assert.assertTrue(driver.getCurrentUrl().contains("dashboard"));
-        Assert.assertTrue(wait.until(ExpectedConditions.visibilityOf(dashboardPage.registrationSuccessfulPopUpText())).getText().trim().contains("Registration successful!"));
+        Assert.assertTrue(wait.until(ExpectedConditions.visibilityOf(dashboardPage.getRegistrationSuccessfulPopUp())).getText().trim().contains("Registration successful!"));
+        dashboardPage.clickMenuBtn();
+        dashboardPage.clickLogout();
+        Assert.assertTrue(driver.getCurrentUrl().contains("login"));
     }
 }
