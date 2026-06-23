@@ -4,7 +4,8 @@
     <test verbose="2" preserve-order="true" name="chrome">
         <parameter name="browser" value="chrome"/>
         <classes>
-            <class name="modules.userManagement.TestScenario01"/>
+            <class name="modules.userManagement.TestScenario01">
+            </class>
         </classes>
     </test>
 <!--        <test verbose="2" preserve-order="true" name="edge">-->
