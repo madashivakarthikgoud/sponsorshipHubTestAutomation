@@ -1,0 +1,272 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  .header-content {
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      font-size: 28px;
+
+      mat-icon {
+        color: #2e7d32;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .subtitle {
+      color: #666;
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+  }
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+
+  p {
+    margin-top: 20px;
+    color: #666;
+  }
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  background: #ffebee;
+  border-radius: 12px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #f44336;
+  }
+
+  p {
+    color: #c62828;
+    margin: 15px 0;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px 20px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: #2e7d32;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    font-size: 32px;
+    margin: 0;
+    background: linear-gradient(135deg, #43a047 0%, #1de9b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  p {
+    margin: 8px 0 0;
+    color: #666;
+    font-size: 13px;
+  }
+
+  &.earnings mat-icon {
+    color: #4caf50;
+  }
+  &.rating mat-icon {
+    color: #ffc107;
+  }
+}
+
+section {
+  margin-bottom: 40px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: #333;
+
+    mat-icon {
+      color: #2e7d32;
+    }
+  }
+}
+
+.campaign-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  mat-card-header {
+    background: linear-gradient(135deg, #43a047 0%, #1de9b6 100%);
+    color: white;
+    padding: 20px;
+    margin: -16px -16px 16px -16px;
+
+    mat-card-title,
+    mat-card-subtitle {
+      color: white !important;
+    }
+
+    mat-card-subtitle {
+      opacity: 0.9;
+    }
+  }
+
+  .campaign-desc {
+    color: #666;
+    line-height: 1.5;
+    min-height: 45px;
+  }
+
+  mat-card-actions {
+    padding: 0 16px 16px;
+  }
+}
+
+.campaign-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #666;
+    font-size: 14px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .budget {
+    font-weight: 600;
+    color: #333;
+
+    mat-icon {
+      color: #4caf50;
+    }
+  }
+}
+
+.applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.application-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+
+  .app-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #43a047 0%, #1de9b6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    mat-icon {
+      color: white;
+    }
+  }
+
+  .app-content {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+      display: block;
+      color: #333;
+    }
+
+    span {
+      font-size: 13px;
+      color: #666;
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  mat-icon {
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+    color: #ddd;
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    margin: 0 0 10px;
+    color: #555;
+  }
+
+  p {
+    margin: 0;
+    color: #888;
+  }
+}

@@ -1,0 +1,33 @@
+.summary-card {
+  text-align: center;
+  padding: 30px;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+
+  h2 {
+    font-size: 3rem;
+    margin: 0;
+  }
+
+  p {
+    margin: 10px 0 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 50px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.full-width {
+  width: 100%;
+}
+
