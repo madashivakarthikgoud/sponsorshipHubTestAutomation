@@ -23,7 +23,20 @@ public class BaseTest{
     @Parameters("browser")
     public void initializeDriver(String browser){
         if(browser.equals("chrome")){
-            driver = new ChromeDriver();
+            org.openqa.selenium.chrome.ChromeOptions options = new org.openqa.selenium.chrome.ChromeOptions();
+//            options.addArguments("--headless=new");
+            options.addArguments("--disable-features=PasswordLeakDetection,PasswordLeakToggleMove");
+            options.addArguments("--disable-popup-blocking");
+            options.addArguments("--disable-default-apps");
+            options.addArguments("--disable-extensions");
+            java.util.Map<String, Object> prefs = new java.util.HashMap<>();
+            prefs.put("profile.password_manager_enabled", false);
+            prefs.put("credentials_enable_service", false);
+            prefs.put("profile.password_manager_leak_detection", false);
+            prefs.put("profile.password_manager.leak_detection", false);
+            prefs.put("password_manager_enabled", false);
+            options.setExperimentalOption("prefs", prefs);
+            driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }else if(browser.equals("edge")){
             driver = new EdgeDriver();
         }

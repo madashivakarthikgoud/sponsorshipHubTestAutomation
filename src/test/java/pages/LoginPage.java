@@ -1,7 +1,7 @@
 package pages;
 
 import base.BasePage;
-import modules.userManagement.TestScenario01;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
@@ -17,7 +17,7 @@ public class LoginPage extends BasePage {
         super(driver);
     }
 
-    private static final Logger logger = LogManager.getLogger(TestScenario01.class);
+    private static final Logger logger = LogManager.getLogger(LoginPage.class);
 
     @FindBy(xpath = "//a[@routerlink='/signup' and text()='Sign up']")
     WebElement signupBtn;
@@ -49,14 +49,14 @@ public class LoginPage extends BasePage {
 
     public void setUserEmail(String email){
         WebElement mail = wait.until(ExpectedConditions.visibilityOfElementLocated(userEmailInput));
-        mail.clear();
+        mail.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
         mail.sendKeys(email);
         mail.sendKeys(Keys.TAB);
     }
 
     public void setUserPasswordInput(String password){
         WebElement pass = wait.until(ExpectedConditions.visibilityOfElementLocated(userPasswordInput));
-        pass.clear();
+        pass.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
         pass.sendKeys(password);
         pass.sendKeys(Keys.TAB);
     }

@@ -1,7 +1,7 @@
 package pages;
 
 import base.BasePage;
-import modules.userManagement.TestScenario01;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -18,7 +18,7 @@ public class SignUpPage extends BasePage {
     public SignUpPage(WebDriver driver){
         super(driver);
     }
-    private static final Logger logger = LogManager.getLogger(TestScenario01.class);
+    private static final Logger logger = LogManager.getLogger(SignUpPage.class);
 
     @FindBy(xpath="//input[@placeholder='Enter a unique username']")
     WebElement userNameInput;
@@ -55,20 +55,23 @@ public class SignUpPage extends BasePage {
 
     public void setUserName(String username){
         wait.until(ExpectedConditions.visibilityOf(userNameInput));
-        userNameInput.clear();
+        userNameInput.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), org.openqa.selenium.Keys.DELETE);
         userNameInput.sendKeys(username);
+        userNameInput.sendKeys(org.openqa.selenium.Keys.TAB);
     }
 
     public void setUserEmail(String email){
         wait.until(ExpectedConditions.visibilityOf(userEmailInput));
-        userEmailInput.clear();
+        userEmailInput.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), org.openqa.selenium.Keys.DELETE);
         userEmailInput.sendKeys(email);
+        userEmailInput.sendKeys(org.openqa.selenium.Keys.TAB);
     }
 
     public void setUserPasswordInput(String password){
         wait.until(ExpectedConditions.visibilityOf(userPasswordInput));
-        userPasswordInput.clear();
+        userPasswordInput.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), org.openqa.selenium.Keys.DELETE);
         userPasswordInput.sendKeys(password);
+        userPasswordInput.sendKeys(org.openqa.selenium.Keys.TAB);
     }
 
     public void setRoleSelectInput(String role){
