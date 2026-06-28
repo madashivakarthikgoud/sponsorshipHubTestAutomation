@@ -1,0 +1,74 @@
+[
+  {
+    "testCaseID": "UM_TC_01",
+    "userName": "BrandUser",
+    "email": "brandtest@gmail.com",
+    "password": "Pass@12345",
+    "role": "Brand",
+    "expectedResult": "Success",
+    "expectedMessage": "Registration successful!"
+  },
+  {
+    "testCaseID": "UM_TC_02",
+    "userName": "InfluencerUser",
+    "email": "influencertest@gmail.com",
+    "password": "Pass@12345",
+    "role": "Influencer",
+    "expectedResult": "Success",
+    "expectedMessage": "Registration successful!"
+  },
+  {
+    "testCaseID": "UM_TC_03",
+    "userName": "UniqueUser03",
+    "email": "brand@gmail.com",
+    "password": "Pass@12345",
+    "role": "Brand",
+    "expectedResult": "Failure",
+    "expectedMessage": "Email already registered"
+  },
+  {
+    "testCaseID": "UM_TC_04",
+    "userName": "brand",
+    "email": "unique04@gmail.com",
+    "password": "Pass@12345",
+    "role": "Brand",
+    "expectedResult": "Failure",
+    "expectedMessage": "Username already exists"
+  },
+  {
+    "testCaseID": "UM_TC_05",
+    "userName": "TestUser05",
+    "email": "not-a-valid-email",
+    "password": "Pass@12345",
+    "role": "Brand",
+    "expectedResult": "Failure",
+    "expectedMessage": "Invalid email format"
+  },
+  {
+    "testCaseID": "UM_TC_06",
+    "userName": "TestUser06",
+    "email": "testuser06@gmail.com",
+    "password": "weakpassword",
+    "role": "Brand",
+    "expectedResult": "Failure",
+    "expectedMessage": "Password must"
+  },
+  {
+    "testCaseID": "UM_TC_07",
+    "userName": "ab",
+    "email": "testuser07@gmail.com",
+    "password": "Pass@12345",
+    "role": "Brand",
+    "expectedResult": "Failure",
+    "expectedMessage": "at least 3"
+  },
+  {
+    "testCaseID": "UM_TC_08",
+    "userName": "",
+    "email": "",
+    "password": "",
+    "role": "",
+    "expectedResult": "Failure",
+    "expectedMessage": "required"
+  }
+]

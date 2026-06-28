@@ -15,29 +15,9 @@
     </properties>
 
     <dependencies>
-        <!-- Apache Commons Lang — RandomStringUtils for BaseTest helpers -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
-            <scope>compile</scope>
-        </dependency>
 
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-<!--            <version>7.9.0</version> -->
-            <scope>test</scope>
-        </dependency>
-        <!-- Selenium WebDriver -->
-        <dependency>
-            <groupId>org.seleniumhq.selenium</groupId>
-            <artifactId>selenium-java</artifactId>
-            <version>4.44.0</version>
-            <scope>compile</scope>
-        </dependency>
+        <!-- ── Test framework ───────────────────────────────────────────── -->
 
-        <!-- TestNG framework -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
@@ -45,55 +25,74 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Log4j2 — core, api, slf4j bridge -->
+        <!-- ── Browser automation ───────────────────────────────────────── -->
+
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.26.0</version>
-            <scope>compile</scope>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.44.0</version>
+            <scope>test</scope>
         </dependency>
+
+        <!-- ── Logging (log4j2) ─────────────────────────────────────────── -->
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.26.0</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.26.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Bridges SLF4J calls (from Selenium internals) to log4j2 -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
             <version>2.26.0</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- ExtentReports — HTML test reports -->
+        <!-- ── Reporting ────────────────────────────────────────────────── -->
+
         <dependency>
             <groupId>com.aventstack</groupId>
             <artifactId>extentreports</artifactId>
             <version>5.1.2</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
 
-        <!-- Apache Commons IO -->
+        <!-- ── Test utilities ───────────────────────────────────────────── -->
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.22.0</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
 
-        <!-- Apache POI — Excel read/write for test data -->
+        <!-- ── JSON data binding ────────────────────────────────────────── -->
+
         <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>5.2.5</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.18.3</version>
+            <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
-            <!--
-                Maven Surefire Plugin — wires TestNG suite XML into the Maven build.
-                Run with: mvn test
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -102,24 +101,7 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
-                    <!-- Keep test output in target/surefire-reports -->
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                </configuration>
-            </plugin>
-
-            <!--
-                Exec Plugin — allows running SeedTestData as a standalone Java class
-                without a separate jar.
-                Usage: mvn exec:java -Dexec.mainClass="utils.SeedTestData"
-                       (or just: mvn exec:java  — uses the configured mainClass below)
-            -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <mainClass>utils.SeedTestData</mainClass>
-                    <classpathScope>test</classpathScope>
                 </configuration>
             </plugin>
         </plugins>

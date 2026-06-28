@@ -1,68 +1,49 @@
 package dataProviders;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.testng.annotations.DataProvider;
-import utils.ExcelUtils;
+import utils.JsonUtils;
 
-import java.io.IOException;
-
-/**
- * Centralized TestNG DataProvider for all test modules.
- *
- * Excel file location: src/test/resources/TestData.xlsx
- *
- * Sheets consumed:
- *   - SignUp_Data  : columns → testCaseID | userName | email | password | role | expectedResult | expectedMessage
- *   - Login_Data   : columns → testCaseID | email | password | expectedResult | expectedMessage
- */
 public class TestDataProviders {
 
-    private static final String EXCEL_PATH =
-        System.getProperty("user.dir") + "/src/test/resources/TestData.xlsx";
-
-    // ─── Signup Data ───────────────────────────────────────────────────────────
-
-    /**
-     * Provides signup test data from the "SignUp_Data" sheet.
-     * Covers UM_TC_01 → UM_TC_08.
-     */
     @DataProvider(name = "signUpData")
-    public Object[][] getSignUpData() throws IOException {
-        return readSheetData("SignUp_Data");
+    public Object[][] getSignUpData() {
+        JsonNode root = JsonUtils.loadJson("testdata/signup_data.json");
+        return JsonUtils.toDataProviderArray(root,
+                "testCaseID", "userName", "email", "password", "role", "expectedResult", "expectedMessage");
     }
 
-    // ─── Login Data ────────────────────────────────────────────────────────────
-
-    /**
-     * Provides login test data from the "Login_Data" sheet.
-     * Covers UM_TC_09 → UM_TC_14.
-     */
     @DataProvider(name = "loginData")
-    public Object[][] getLoginData() throws IOException {
-        return readSheetData("Login_Data");
+    public Object[][] getLoginData() {
+        JsonNode root = JsonUtils.loadJson("testdata/login_data.json");
+        return JsonUtils.toDataProviderArray(root,
+                "testCaseID", "email", "password", "expectedResult", "expectedMessage");
     }
 
-    // ─── Internal Helper ───────────────────────────────────────────────────────
+    @DataProvider(name = "brandLoginData")
+    public Object[][] getBrandLoginData() {
+        JsonNode root = JsonUtils.loadJson("testdata/campaign_data.json");
+        JsonNode login = root.get("brandLogin");
+        return new Object[][] {{
+            login.get("testCaseID").asText(),
+            login.get("email").asText(),
+            login.get("password").asText(),
+            login.get("expectedResult").asText(),
+            login.get("expectedMessage").asText()
+        }};
+    }
 
-    /**
-     * Generic Excel sheet reader.
-     * Row 0 is assumed to be a header row and is skipped.
-     * Returns all data rows as a 2D String array.
-     */
-    private Object[][] readSheetData(String sheetName) throws IOException {
-        ExcelUtils xlUtil = new ExcelUtils(EXCEL_PATH);
+    @DataProvider(name = "createCampaignData")
+    public Object[][] getCreateCampaignData() {
+        JsonNode root = JsonUtils.loadJson("testdata/campaign_data.json");
+        return JsonUtils.toDataProviderArray(root.get("createCampaigns"),
+                "testCaseID", "name", "description", "startDate", "endDate", "platform", "budget", "eligibility");
+    }
 
-        int totalRows = xlUtil.getRowCount(sheetName);   // last data row index (0-based, excludes header)
-        int totalCols = xlUtil.getCellCount(sheetName, 0); // column count from row 0 (header)
-
-        // totalRows from getRowCount() returns the index of the last row (0-based),
-        // so the actual count of data rows = totalRows (header is row 0, data starts at row 1).
-        String[][] data = new String[totalRows][totalCols];
-
-        for (int i = 1; i <= totalRows; i++) {
-            for (int j = 0; j < totalCols; j++) {
-                data[i - 1][j] = xlUtil.getCellData(sheetName, i, j);
-            }
-        }
-        return data;
+    @DataProvider(name = "negativeCampaignData")
+    public Object[][] getNegativeCampaignData() {
+        JsonNode root = JsonUtils.loadJson("testdata/campaign_data.json");
+        return JsonUtils.toDataProviderArray(root.get("negativeCampaigns"),
+                "testCaseID", "name", "description", "startDate", "endDate", "platform", "budget", "eligibility");
     }
 }

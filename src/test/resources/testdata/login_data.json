@@ -1,0 +1,44 @@
+[
+  {
+    "testCaseID": "UM_TC_09",
+    "email": "brand@gmail.com",
+    "password": "brand@123",
+    "expectedResult": "Success",
+    "expectedMessage": "Login successful!"
+  },
+  {
+    "testCaseID": "UM_TC_10",
+    "email": "influencer@gmail.com",
+    "password": "influencer@123",
+    "expectedResult": "Success",
+    "expectedMessage": "Login successful!"
+  },
+  {
+    "testCaseID": "UM_TC_11",
+    "email": "brand@gmail.com",
+    "password": "WrongPass@999",
+    "expectedResult": "Failure",
+    "expectedMessage": "Invalid email or password"
+  },
+  {
+    "testCaseID": "UM_TC_12",
+    "email": "notregistered@gmail.com",
+    "password": "Pass@12345",
+    "expectedResult": "Failure",
+    "expectedMessage": "Invalid email or password"
+  },
+  {
+    "testCaseID": "UM_TC_13",
+    "email": "",
+    "password": "Pass@12345",
+    "expectedResult": "Failure",
+    "expectedMessage": "required"
+  },
+  {
+    "testCaseID": "UM_TC_14",
+    "email": "brand@gmail.com",
+    "password": "",
+    "expectedResult": "Failure",
+    "expectedMessage": "required"
+  }
+]

@@ -2,56 +2,19 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 
 <!--
-    SponsorshipHub Test Automation Suite
-    ─────────────────────────────────────────────────────────────────────────────
-    Modules covered (this suite):
-      • userManagement   → TestScenario01 (15 tests: signup + login + logout)
-      • campaignManagement → TestScenario02 (12 tests: create, edit, delete, etc.)
-
-    Execution order:
-      TestScenario01 runs first (priority 1-3), then TestScenario02 (priority 4-15).
-      Both run in the same thread to share a single browser session per test class.
-
-    Thread-count = 1: sequential execution guarantees priority ordering is respected
-    and avoids session-collision issues between UserManagement and CampaignManagement.
+    SponsorshipHub QA Test Suite
+    Run order: UserManagement → CampaignManagement (serial, preserving state within each module)
 -->
 <suite name="SponsorshipHub QA Suite" parallel="none" verbose="2">
 
-    <!--
-        ══════════════════════════════════════════════════════════════════════════
-        USER MANAGEMENT MODULE  —  TestScenario01
-        ══════════════════════════════════════════════════════════════════════════
-        15 test cases:
-          UM_TC_01 .. UM_TC_08  →  Signup (positive + negative)
-          UM_TC_09 .. UM_TC_14  →  Login  (positive + negative)
-          UM_TC_15              →  Logout redirect
-    -->
-    <test verbose="2" preserve-order="true" name="UserManagement_Chrome">
+    <test preserve-order="true" name="UserManagement_Chrome">
         <parameter name="browser" value="chrome"/>
         <classes>
             <class name="modules.userManagement.TestScenario01"/>
         </classes>
     </test>
 
-    <!--
-        ══════════════════════════════════════════════════════════════════════════
-        CAMPAIGN MANAGEMENT MODULE  —  TestScenario02
-        ══════════════════════════════════════════════════════════════════════════
-        12 test cases:
-          CM_TC_01  →  Brand login prerequisite
-          CM_TC_02  →  Create campaign: Instagram
-          CM_TC_03  →  Create campaign: YouTube
-          CM_TC_04  →  Create campaign: TikTok
-          CM_TC_05  →  Create campaign: empty name (negative)
-          CM_TC_06  →  Create campaign: zero budget (negative)
-          CM_TC_07  →  Cancel campaign creation
-          CM_TC_08  →  Campaign list loads
-          CM_TC_09  →  Search campaign by name
-          CM_TC_10  →  View campaign detail
-          CM_TC_11  →  Edit campaign
-          CM_TC_12  →  Delete campaign
-    -->
-    <test verbose="2" preserve-order="true" name="CampaignManagement_Chrome">
+    <test preserve-order="true" name="CampaignManagement_Chrome">
         <parameter name="browser" value="chrome"/>
         <classes>
             <class name="modules.campaignManagement.TestScenario02"/>

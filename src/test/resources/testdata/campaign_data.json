@@ -1,0 +1,75 @@
+{
+  "brandLogin": {
+    "testCaseID": "CM_TC_01",
+    "email": "brand@gmail.com",
+    "password": "brand@123",
+    "expectedResult": "Success",
+    "expectedMessage": "Login successful!"
+  },
+  "logoutTest": {
+    "email": "brand@gmail.com",
+    "password": "brand@123"
+  },
+  "createCampaigns": [
+    {
+      "testCaseID": "CM_TC_02",
+      "name": "Summer Vibes IG 2026",
+      "description": "Promoting our premium summer clothing line on Instagram.",
+      "startDate": "08/01/2026",
+      "endDate": "08/31/2026",
+      "platform": "Instagram",
+      "budget": "7500",
+      "eligibility": "Minimum 5k followers, engagement rate > 2%."
+    },
+    {
+      "testCaseID": "CM_TC_03",
+      "name": "Product Launch YT 2026",
+      "description": "Launching our new product with YouTube video reviews.",
+      "startDate": "09/01/2026",
+      "endDate": "09/30/2026",
+      "platform": "YouTube",
+      "budget": "12000",
+      "eligibility": "YouTube channel with 10k+ subscribers required."
+    },
+    {
+      "testCaseID": "CM_TC_04",
+      "name": "Viral Trend TT 2026",
+      "description": "Viral marketing campaign targeting Gen-Z on TikTok.",
+      "startDate": "10/01/2026",
+      "endDate": "10/31/2026",
+      "platform": "TikTok",
+      "budget": "5000",
+      "eligibility": "Minimum 5k followers, engagement rate > 2%."
+    }
+  ],
+  "negativeCampaigns": [
+    {
+      "testCaseID": "CM_TC_05",
+      "name": "",
+      "description": "Description without name.",
+      "startDate": "08/01/2026",
+      "endDate": "08/31/2026",
+      "platform": "Instagram",
+      "budget": "1000",
+      "eligibility": ""
+    },
+    {
+      "testCaseID": "CM_TC_06",
+      "name": "Zero Budget Campaign",
+      "description": "Testing zero budget validation scenario.",
+      "startDate": "08/01/2026",
+      "endDate": "08/31/2026",
+      "platform": "Facebook",
+      "budget": "0",
+      "eligibility": ""
+    }
+  ],
+  "cancelCampaign": {
+    "testCaseID": "CM_TC_07",
+    "name": "Campaign to be cancelled"
+  },
+  "editCampaign": {
+    "nameSuffix": " [EDITED]",
+    "description": "Updated description for the edited Instagram campaign."
+  }
+}

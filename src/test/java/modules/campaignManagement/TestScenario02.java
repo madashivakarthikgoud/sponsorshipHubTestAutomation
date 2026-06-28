@@ -1,554 +1,423 @@
 package modules.campaignManagement;
 
+import base.AppConstants;
 import base.BaseTest;
+import dataProviders.TestDataProviders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
-import org.testng.annotations.DataProvider;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import pages.CampaignsPage;
 import pages.DashboardPage;
 import pages.LoginPage;
 import pages.NewCampaignsPage;
+import utils.JsonUtils;
 
 /**
- * TestScenario02 — Campaign Management Module
+ * Test Scenario 02 — Campaign Management
  *
- * Covers 12 test cases (all under Brand role):
- *   CM_TC_01  Brand login prerequisite
- *   CM_TC_02  Create campaign — Instagram platform (positive)
- *   CM_TC_03  Create campaign — YouTube platform (positive)
- *   CM_TC_04  Create campaign — TikTok platform (positive)
- *   CM_TC_05  Attempt create campaign with empty name (negative)
- *   CM_TC_06  Attempt create campaign with zero budget (negative)
- *   CM_TC_07  Cancel campaign creation returns to list (positive)
- *   CM_TC_08  Campaign list loads — Brand sees own campaigns (positive)
- *   CM_TC_09  Search campaign by name (positive)
- *   CM_TC_10  View campaign detail page (positive)
- *   CM_TC_11  Edit existing campaign — update name + description (positive)
- *   CM_TC_12  Delete campaign — confirm dialog + removal from list (positive)
+ * <p>Covers:
+ * <ul>
+ *   <li>CM_TC_01 : Brand login (prerequisite for all campaign operations)</li>
+ *   <li>CM_TC_02–04 : Create campaigns (Instagram, YouTube, TikTok)</li>
+ *   <li>CM_TC_05–06 : Negative campaign creation (invalid data)</li>
+ *   <li>CM_TC_07 : Cancel campaign creation</li>
+ *   <li>CM_TC_08 : Campaign list loads with at least one entry</li>
+ *   <li>CM_TC_09 : Search campaign by name (partial match)</li>
+ *   <li>CM_TC_10 : View campaign detail page</li>
+ *   <li>CM_TC_11 : Edit an existing campaign</li>
+ *   <li>CM_TC_12 : Delete a campaign and verify removal</li>
+ * </ul>
  *
- * Test dependency chain:
- *   brandLogin → all campaign tests (login is a prerequisite for all)
+ * <p><strong>Session strategy:</strong> The brand logs in once in {@code brandLogin} and the
+ * session is maintained throughout the class.  Every test navigates to its own start URL so
+ * the execution order can be reasoned about independently.
+ *
+ * <p><strong>Dependency chain:</strong>
+ * <pre>
+ *   brandLogin → createCampaign → verifyCampaignListLoads
+ *                               → searchCampaignByName
+ *                               → viewCampaignDetail
+ *                               → editExistingCampaign
+ *                               → deleteCampaign
+ *             → createCampaignNegative
+ *             → cancelCampaignCreation
+ * </pre>
  */
 public class TestScenario02 extends BaseTest {
 
     private static final Logger logger = LogManager.getLogger(TestScenario02.class);
 
-    /** Name used in CM_TC_02 — also referenced by search, view, edit, delete tests */
-    private static final String CAMPAIGN_NAME_INSTAGRAM = "Summer Vibes IG 2026";
-    /** Name used in CM_TC_03 */
-    private static final String CAMPAIGN_NAME_YOUTUBE   = "Product Launch YT 2026";
-    /** Name used in CM_TC_04 */
-    private static final String CAMPAIGN_NAME_TIKTOK    = "Viral Trend TT 2026";
-    /** Shared eligibility text */
-    private static final String ELIGIBILITY             = "Minimum 5k followers, engagement rate > 2%.";
-    /** Common start/end dates — future dates relative to the test run */
-    private static final String START_DATE              = "08/01/2026";
-    private static final String END_DATE                = "08/31/2026";
+    // ── Page objects (single instance per test class) ─────────────────────────
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_01 — Brand Login Prerequisite
-    // ══════════════════════════════════════════════════════════════════════════════
+    private LoginPage       loginPage;
+    private DashboardPage   dashboardPage;
+    private CampaignsPage   campaignsPage;
+    private NewCampaignsPage newCampaignsPage;
 
-    @DataProvider(name = "brandLoginData")
-    public Object[][] getBrandLoginData() {
-        return new Object[][] {
-            // testCaseID  | email            | password    | expectedResult | expectedMessage
-            { "CM_TC_01",  "brand@gmail.com", "brand@123", "Success",       "Login successful!" }
-        };
-    }
+    // ── Test data resolved once from JSON ─────────────────────────────────────
+
+    /** Name of the Instagram campaign created in CM_TC_02, used by search/view/edit tests. */
+    private String campaignNameInstagram;
+
+    /** Name of the TikTok campaign created in CM_TC_04, targeted for deletion in CM_TC_12. */
+    private String campaignNameTikTok;
+
+    /** Cancel-test details (CM_TC_07). */
+    private String cancelTestCaseID;
+    private String cancelCampaignName;
+
+    /** Edit-test patch data (CM_TC_11). */
+    private String editNameSuffix;
+    private String editDescription;
 
     /**
-     * CM_TC_01: Login as a Brand user.
-     * All subsequent campaign tests depend on this method having been executed
-     * successfully (browser stays authenticated after this test).
+     * Runs after the parent {@code BaseTest.initializeDriver()} (TestNG guarantees
+     * parent {@code @BeforeClass} runs first).
      */
+    @BeforeClass(alwaysRun = true)
+    public void initPagesAndData() {
+        // ── Page objects ──────────────────────────────────────────────────────
+        loginPage        = new LoginPage(driver, wait);
+        dashboardPage    = new DashboardPage(driver, wait);
+        campaignsPage    = new CampaignsPage(driver, wait);
+        newCampaignsPage = new NewCampaignsPage(driver, wait);
+
+        // ── Campaign test data ────────────────────────────────────────────────
+        var root      = JsonUtils.loadJson("testdata/campaign_data.json");
+        var campaigns = root.get("createCampaigns");
+
+        for (var c : campaigns) {
+            String platform = c.get("platform").asText();
+            if ("Instagram".equalsIgnoreCase(platform)) {
+                campaignNameInstagram = c.get("name").asText();
+            } else if ("TikTok".equalsIgnoreCase(platform)) {
+                campaignNameTikTok = c.get("name").asText();
+            }
+        }
+
+        var cancelNode  = root.get("cancelCampaign");
+        cancelTestCaseID    = cancelNode.get("testCaseID").asText();
+        cancelCampaignName  = cancelNode.get("name").asText();
+
+        var editNode    = root.get("editCampaign");
+        editNameSuffix  = editNode.get("nameSuffix").asText();
+        editDescription = editNode.get("description").asText();
+    }
+
+    // ── CM_TC_01: Brand login ─────────────────────────────────────────────────
+
     @Test(
         priority = 4,
         description = "CM_TC_01: Brand user login — prerequisite for all campaign tests",
-        dataProvider = "brandLoginData"
+        dataProvider = "brandLoginData",
+        dataProviderClass = TestDataProviders.class
     )
     public void brandLogin(String testCaseID, String email, String password,
                            String expectedResult, String expectedMessage) {
 
-        driver.get("https://sponsorship-front.netlify.app/login");
-        wait.until(ExpectedConditions.urlContains("login"));
+        driver.get(baseUrl + AppConstants.PATH_LOGIN);
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_LOGIN));
         logger.info("===== [{}] START: Brand login =====", testCaseID);
-
-        LoginPage     loginPage     = new LoginPage(driver);
-        DashboardPage dashboardPage = new DashboardPage(driver);
 
         loginPage.setUserEmail(email);
         loginPage.setUserPasswordInput(password);
         loginPage.clickLoginBtn();
 
         if (expectedResult.equalsIgnoreCase("Success")) {
-            wait.until(ExpectedConditions.urlContains("dashboard"));
-            String currentUrl = driver.getCurrentUrl();
-            Assert.assertTrue(currentUrl.contains("dashboard"),
-                "[" + testCaseID + "] Expected dashboard, got: " + currentUrl);
+            wait.until(ExpectedConditions.urlContains(AppConstants.PATH_DASHBOARD));
+            Assert.assertTrue(driver.getCurrentUrl().contains(AppConstants.PATH_DASHBOARD),
+                "[" + testCaseID + "] Expected dashboard, got: " + driver.getCurrentUrl());
 
-            String popup = wait.until(
-                ExpectedConditions.visibilityOf(dashboardPage.getLoginSuccessfulPopUp())
-            ).getText().trim();
+            String popup = dashboardPage.getLoginSuccessText();
             Assert.assertTrue(popup.contains(expectedMessage),
-                "[" + testCaseID + "] Expected popup '" + expectedMessage + "' but got: " + popup);
-            logger.info("[{}] Brand logged in. URL: {}", testCaseID, currentUrl);
+                "[" + testCaseID + "] Expected popup '" + expectedMessage + "' but got: '" + popup + "'");
+            logger.info("[{}] Brand logged in. Current URL: {}", testCaseID, driver.getCurrentUrl());
         } else {
-            String error = loginPage.getErrorMessage();
-            Assert.fail("[" + testCaseID + "] Login failed unexpectedly. Error: " + error);
+            // brandLogin is only called with Success data; any failure here is a setup problem.
+            Assert.fail("[" + testCaseID + "] Brand login failed unexpectedly. Error: "
+                    + loginPage.getErrorMessage());
         }
 
         logger.info("===== [{}] END: Brand login — PASSED =====", testCaseID);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_02 — Create Campaign: Instagram Platform
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_02/03/04: Create campaigns (positive) ───────────────────────────
 
     @Test(
         priority = 5,
-        description = "CM_TC_02: Create a new campaign with Instagram platform (positive)",
-        dependsOnMethods = { "brandLogin" }
+        description = "CM_TC_02/03/04: Create campaigns for Instagram, YouTube, and TikTok",
+        dataProvider = "createCampaignData",
+        dataProviderClass = TestDataProviders.class,
+        dependsOnMethods = {"brandLogin"}
     )
-    public void createCampaignInstagram() {
-        logger.info("===== [CM_TC_02] START: Create Campaign — Instagram =====");
+    public void createCampaign(String testCaseID, String name, String description,
+                               String startDate, String endDate, String platform,
+                               String budget, String eligibility) {
 
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
+        logger.info("===== [{}] START: Create Campaign — {} =====", testCaseID, platform);
 
-        logger.info("[CM_TC_02] Navigating to Campaigns tab");
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        navigateToCampaignsList(testCaseID);
 
-        logger.info("[CM_TC_02] Clicking Create Campaign");
         campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_NEW_CAMPAIGN));
 
-        logger.info("[CM_TC_02] Filling campaign form");
-        newCampaignsPage.fillAndSubmitCampaign(
-            CAMPAIGN_NAME_INSTAGRAM,
-            "Promoting our premium summer clothing line on Instagram.",
-            START_DATE, END_DATE,
-            "Instagram",
-            "7500",
-            ELIGIBILITY
-        );
+        // Uniquify the campaign name to prevent collisions with duplicate stale data
+        String uniqueID = String.valueOf(System.currentTimeMillis());
+        String uniqueName = name + "_" + uniqueID;
 
-        logger.info("[CM_TC_02] Verifying redirect back to campaigns list");
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns$"));
-        Assert.assertTrue(driver.getCurrentUrl().endsWith("/campaigns"),
-            "[CM_TC_02] Expected to return to /campaigns list, got: " + driver.getCurrentUrl());
+        if ("Instagram".equalsIgnoreCase(platform)) {
+            campaignNameInstagram = uniqueName;
+        } else if ("TikTok".equalsIgnoreCase(platform)) {
+            campaignNameTikTok = uniqueName;
+        }
 
-        logger.info("===== [CM_TC_02] END: Create Campaign Instagram — PASSED =====");
+        logger.info("[{}] Filling and submitting campaign form with name: '{}'", testCaseID, uniqueName);
+        newCampaignsPage.fillAndSubmitCampaign(uniqueName, description, startDate, endDate,
+                                               platform, budget, eligibility);
+
+        wait.until(ExpectedConditions.urlMatches(AppConstants.URL_REGEX_CAMPAIGNS_LIST));
+        Assert.assertTrue(driver.getCurrentUrl().endsWith("/" + AppConstants.PATH_CAMPAIGNS),
+            "[" + testCaseID + "] Expected /campaigns list after creation, got: "
+                + driver.getCurrentUrl());
+
+        logger.info("===== [{}] END: Create Campaign ({}) — PASSED =====", testCaseID, platform);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_03 — Create Campaign: YouTube Platform
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_05/06: Create campaigns (negative) ──────────────────────────────
 
     @Test(
         priority = 6,
-        description = "CM_TC_03: Create a new campaign with YouTube platform (positive)",
-        dependsOnMethods = { "brandLogin" }
+        description = "CM_TC_05/06: Negative campaign creation — missing name and zero budget",
+        dataProvider = "negativeCampaignData",
+        dataProviderClass = TestDataProviders.class,
+        dependsOnMethods = {"brandLogin"}
     )
-    public void createCampaignYouTube() {
-        logger.info("===== [CM_TC_03] START: Create Campaign — YouTube =====");
+    public void createCampaignNegative(String testCaseID, String name, String description,
+                                       String startDate, String endDate, String platform,
+                                       String budget, String eligibility) {
 
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
+        logger.info("===== [{}] START: Create Campaign Negative =====", testCaseID);
+        logger.info("[{}] name='{}', budget='{}'", testCaseID, name, budget);
 
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        navigateToCampaignsList(testCaseID);
 
         campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_NEW_CAMPAIGN));
 
-        newCampaignsPage.fillAndSubmitCampaign(
-            CAMPAIGN_NAME_YOUTUBE,
-            "Launching our new product with YouTube video reviews.",
-            "09/01/2026", "09/30/2026",
-            "YouTube",
-            "12000",
-            "YouTube channel with 10k+ subscribers required."
-        );
+        // Always call setters to touch fields so Angular reactive form validation triggers.
+        newCampaignsPage.setCampaignName(name);
+        newCampaignsPage.setCampaignDescription(description);
+        newCampaignsPage.setCampaignStartDate(startDate);
+        newCampaignsPage.setCampaignEndDate(endDate);
+        if (platform != null && !platform.isEmpty()) {
+            newCampaignsPage.setCampaignPlatform(platform);
+        }
+        newCampaignsPage.setCampaignBudget(budget);
 
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns$"));
-        Assert.assertTrue(driver.getCurrentUrl().endsWith("/campaigns"),
-            "[CM_TC_03] Expected to return to /campaigns list");
+        newCampaignsPage.clickCreateCampaignSubmit();
 
-        logger.info("===== [CM_TC_03] END: Create Campaign YouTube — PASSED =====");
+        String errors       = newCampaignsPage.getFormValidationErrors();
+        boolean staysOnForm = driver.getCurrentUrl().contains(AppConstants.PATH_NEW_CAMPAIGN);
+
+        Assert.assertTrue(!errors.isEmpty() || staysOnForm,
+            "[" + testCaseID + "] Expected validation error or form to remain open, but got URL: "
+                + driver.getCurrentUrl() + " with no errors.");
+
+        logger.info("[{}] Validation blocked submission. errors='{}', staysOnForm={}",
+            testCaseID, errors, staysOnForm);
+        logger.info("===== [{}] END: Negative campaign test — PASSED =====", testCaseID);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_04 — Create Campaign: TikTok Platform
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_07: Cancel ──────────────────────────────────────────────────────
 
     @Test(
         priority = 7,
-        description = "CM_TC_04: Create a new campaign with TikTok platform (positive)",
-        dependsOnMethods = { "brandLogin" }
+        description = "CM_TC_07: Clicking Cancel on the campaign form returns user to campaigns list",
+        dependsOnMethods = {"brandLogin"}
     )
-    public void createCampaignTikTok() {
-        logger.info("===== [CM_TC_04] START: Create Campaign — TikTok =====");
+    public void cancelCampaignCreation() {
+        logger.info("===== [{}] START: Cancel Campaign Creation =====", cancelTestCaseID);
 
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
-
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        navigateToCampaignsList(cancelTestCaseID);
 
         campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_NEW_CAMPAIGN));
 
-        newCampaignsPage.fillAndSubmitCampaign(
-            CAMPAIGN_NAME_TIKTOK,
-            "Viral marketing campaign targeting Gen-Z on TikTok.",
-            "10/01/2026", "10/31/2026",
-            "TikTok",
-            "5000",
-            ELIGIBILITY
-        );
+        newCampaignsPage.setCampaignName(cancelCampaignName);
 
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns$"));
-        Assert.assertTrue(driver.getCurrentUrl().endsWith("/campaigns"),
-            "[CM_TC_04] Expected to return to /campaigns list");
+        logger.info("[{}] Clicking Cancel", cancelTestCaseID);
+        newCampaignsPage.clickCancelBtn();
 
-        logger.info("===== [CM_TC_04] END: Create Campaign TikTok — PASSED =====");
+        wait.until(ExpectedConditions.urlMatches(AppConstants.URL_REGEX_CAMPAIGNS_LIST));
+        String url = driver.getCurrentUrl();
+        Assert.assertTrue(url.endsWith("/" + AppConstants.PATH_CAMPAIGNS),
+            "[" + cancelTestCaseID + "] Expected redirect to /campaigns after cancel, got: " + url);
+
+        logger.info("[{}] Redirected to: {}", cancelTestCaseID, url);
+        logger.info("===== [{}] END: Cancel Campaign — PASSED =====", cancelTestCaseID);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_05 — Create Campaign: Empty Name (Negative)
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_08: Campaign list loads ─────────────────────────────────────────
 
     @Test(
         priority = 8,
-        description = "CM_TC_05: Attempt to create campaign with empty campaign name (negative)",
-        dependsOnMethods = { "brandLogin" }
-    )
-    public void createCampaignWithEmptyName() {
-        logger.info("===== [CM_TC_05] START: Create Campaign — Empty Name (Negative) =====");
-
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
-
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
-
-        campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
-
-        // Fill all fields EXCEPT name, then submit
-        logger.info("[CM_TC_05] Submitting form without campaign name");
-        newCampaignsPage.setCampaignDescription("Description without name.");
-        newCampaignsPage.setCampaignStartDate(START_DATE);
-        newCampaignsPage.setCampaignEndDate(END_DATE);
-        newCampaignsPage.setCampaignPlatform("Instagram");
-        newCampaignsPage.setCampaignBudget("1000");
-        newCampaignsPage.clickCreateCampaignSubmit();
-
-        // Should remain on the form page (URL still contains 'new') OR show a validation error
-        String errors = newCampaignsPage.getFormValidationErrors();
-        boolean staysOnPage = driver.getCurrentUrl().contains("campaigns/new");
-
-        Assert.assertTrue(
-            !errors.isEmpty() || staysOnPage,
-            "[CM_TC_05] Expected validation error or form to stay open, but got URL: "
-                + driver.getCurrentUrl() + " and errors: '" + errors + "'"
-        );
-
-        logger.info("[CM_TC_05] Validation blocked submission. Errors: '{}'. URL: {}",
-            errors, driver.getCurrentUrl());
-        logger.info("===== [CM_TC_05] END: Empty Name negative test — PASSED =====");
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_06 — Create Campaign: Zero Budget (Negative)
-    // ══════════════════════════════════════════════════════════════════════════════
-
-    @Test(
-        priority = 9,
-        description = "CM_TC_06: Attempt to create campaign with budget = 0 (negative)",
-        dependsOnMethods = { "brandLogin" }
-    )
-    public void createCampaignWithZeroBudget() {
-        logger.info("===== [CM_TC_06] START: Create Campaign — Zero Budget (Negative) =====");
-
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
-
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
-
-        campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
-
-        logger.info("[CM_TC_06] Submitting form with budget = 0");
-        newCampaignsPage.setCampaignName("Zero Budget Campaign");
-        newCampaignsPage.setCampaignDescription("Testing zero budget validation scenario.");
-        newCampaignsPage.setCampaignStartDate(START_DATE);
-        newCampaignsPage.setCampaignEndDate(END_DATE);
-        newCampaignsPage.setCampaignPlatform("Facebook");
-        newCampaignsPage.setCampaignBudget("0");
-        newCampaignsPage.clickCreateCampaignSubmit();
-
-        String errors = newCampaignsPage.getFormValidationErrors();
-        boolean staysOnPage = driver.getCurrentUrl().contains("campaigns/new");
-
-        Assert.assertTrue(
-            !errors.isEmpty() || staysOnPage,
-            "[CM_TC_06] Expected validation error for zero budget, but form was submitted. URL: "
-                + driver.getCurrentUrl()
-        );
-
-        logger.info("[CM_TC_06] Validation blocked zero-budget submission. Errors: '{}'", errors);
-        logger.info("===== [CM_TC_06] END: Zero Budget negative test — PASSED =====");
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_07 — Cancel Campaign Creation Returns to List
-    // ══════════════════════════════════════════════════════════════════════════════
-
-    @Test(
-        priority = 10,
-        description = "CM_TC_07: Clicking Cancel on campaign form returns user to campaigns list",
-        dependsOnMethods = { "brandLogin" }
-    )
-    public void cancelCampaignCreation() {
-        logger.info("===== [CM_TC_07] START: Cancel Campaign Creation =====");
-
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage newCampaignsPage = new NewCampaignsPage(driver);
-
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
-
-        campaignsPage.clickCreateCampaignBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns/new"));
-        logger.info("[CM_TC_07] On new campaign form. Clicking Cancel.");
-
-        // Partially fill the form to ensure cancel ignores entered data
-        newCampaignsPage.setCampaignName("Campaign to be cancelled");
-        newCampaignsPage.clickCancelBtn();
-
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns$"));
-        String url = driver.getCurrentUrl();
-        Assert.assertTrue(url.endsWith("/campaigns"),
-            "[CM_TC_07] Expected redirect to /campaigns after cancel, got: " + url);
-
-        logger.info("[CM_TC_07] Redirected back to /campaigns: {}", url);
-        logger.info("===== [CM_TC_07] END: Cancel Campaign — PASSED =====");
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_08 — Campaign List Loads for Brand
-    // ══════════════════════════════════════════════════════════════════════════════
-
-    @Test(
-        priority = 11,
-        description = "CM_TC_08: Verify campaign list loads and shows campaigns owned by the Brand",
-        dependsOnMethods = { "createCampaignInstagram" }
+        description = "CM_TC_08: Verify campaign list loads and displays campaigns owned by the Brand",
+        dependsOnMethods = {"createCampaign"}
     )
     public void verifyCampaignListLoads() {
         logger.info("===== [CM_TC_08] START: Verify Campaign List Loads =====");
 
-        DashboardPage dashboardPage = new DashboardPage(driver);
-        CampaignsPage campaignsPage = new CampaignsPage(driver);
-
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-
-        logger.info("[CM_TC_08] Waiting for campaign list to load");
-        campaignsPage.waitForListToLoad();
+        navigateToCampaignsList("CM_TC_08");
 
         int count = campaignsPage.getCampaignCount();
-        logger.info("[CM_TC_08] Campaigns visible on list: {}", count);
+        logger.info("[CM_TC_08] Campaigns visible: {}", count);
         Assert.assertTrue(count > 0,
             "[CM_TC_08] Expected at least one campaign in the Brand's list, but found: " + count);
 
         logger.info("===== [CM_TC_08] END: Campaign List Loads — PASSED =====");
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_09 — Search Campaign by Name
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_09: Search by name ──────────────────────────────────────────────
 
     @Test(
-        priority = 12,
-        description = "CM_TC_09: Search for a campaign by name using the search bar",
-        dependsOnMethods = { "createCampaignInstagram" }
+        priority = 9,
+        description = "CM_TC_09: Search for a campaign by partial name and verify it appears in results",
+        dependsOnMethods = {"createCampaign"}
     )
     public void searchCampaignByName() {
         logger.info("===== [CM_TC_09] START: Search Campaign by Name =====");
 
-        DashboardPage dashboardPage = new DashboardPage(driver);
-        CampaignsPage campaignsPage = new CampaignsPage(driver);
+        navigateToCampaignsList("CM_TC_09");
 
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        // Use a prefix to validate substring / partial-match search behaviour.
+        String searchTerm = campaignNameInstagram.length() > AppConstants.SEARCH_TERM_PREFIX_LENGTH
+                ? campaignNameInstagram.substring(0, AppConstants.SEARCH_TERM_PREFIX_LENGTH)
+                : campaignNameInstagram;
 
-        // Search using the first 10 characters of the known campaign name
-        String searchTerm = CAMPAIGN_NAME_INSTAGRAM.substring(0, 10);
-        logger.info("[CM_TC_09] Searching for: '{}'", searchTerm);
+        logger.info("[CM_TC_09] Searching with prefix: '{}'", searchTerm);
         campaignsPage.searchByName(searchTerm);
 
-        // Wait for the searched campaign to appear in the filtered results (up to 5 seconds)
-        boolean visible = false;
-        for (int i = 0; i < 5; i++) {
-            if (campaignsPage.isCampaignVisible(CAMPAIGN_NAME_INSTAGRAM)) {
-                visible = true;
-                break;
-            }
-            logger.info("[CM_TC_09] Campaign not visible yet in search results. Waiting... (Attempt {})", i + 1);
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-        }
-        Assert.assertTrue(visible,
-            "[CM_TC_09] Expected campaign '" + CAMPAIGN_NAME_INSTAGRAM
-                + "' to be visible after search, but it was not found.");
+        // Wait via FluentWait rather than a Thread.sleep loop.
+        campaignsPage.waitForCampaignVisible(campaignNameInstagram);
+        Assert.assertTrue(campaignsPage.isCampaignVisible(campaignNameInstagram),
+            "[CM_TC_09] Campaign '" + campaignNameInstagram + "' was not found in search results.");
 
-        logger.info("[CM_TC_09] Campaign '{}' found in search results", CAMPAIGN_NAME_INSTAGRAM);
+        logger.info("[CM_TC_09] Campaign '{}' found", campaignNameInstagram);
         logger.info("===== [CM_TC_09] END: Search Campaign — PASSED =====");
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_10 — View Campaign Detail Page
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_10: View detail ─────────────────────────────────────────────────
 
     @Test(
-        priority = 13,
+        priority = 10,
         description = "CM_TC_10: Click a campaign card to navigate to its detail page",
-        dependsOnMethods = { "createCampaignInstagram" }
+        dependsOnMethods = {"createCampaign"}
     )
     public void viewCampaignDetail() {
         logger.info("===== [CM_TC_10] START: View Campaign Detail =====");
 
-        DashboardPage dashboardPage = new DashboardPage(driver);
-        CampaignsPage campaignsPage = new CampaignsPage(driver);
+        navigateToCampaignsList("CM_TC_10");
 
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        logger.info("[CM_TC_10] Clicking campaign card: '{}'", campaignNameInstagram);
+        campaignsPage.clickViewCampaign(campaignNameInstagram);
 
-        logger.info("[CM_TC_10] Clicking on campaign card: '{}'", CAMPAIGN_NAME_INSTAGRAM);
-        campaignsPage.clickViewCampaign(CAMPAIGN_NAME_INSTAGRAM);
-
-        // URL should be /campaigns/{id}
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns/\\d+$"));
+        wait.until(ExpectedConditions.urlMatches(AppConstants.URL_REGEX_CAMPAIGN_DETAIL));
         String detailUrl = driver.getCurrentUrl();
-        Assert.assertTrue(
-            detailUrl.matches(".*/campaigns/\\d+$"),
-            "[CM_TC_10] Expected campaign detail URL (/campaigns/{id}) but got: " + detailUrl
-        );
+        Assert.assertTrue(detailUrl.matches(AppConstants.URL_REGEX_CAMPAIGN_DETAIL),
+            "[CM_TC_10] Expected campaign detail URL (/campaigns/{id}) but got: " + detailUrl);
 
-        logger.info("[CM_TC_10] Navigated to campaign detail: {}", detailUrl);
+        logger.info("[CM_TC_10] Navigated to detail: {}", detailUrl);
         logger.info("===== [CM_TC_10] END: View Campaign Detail — PASSED =====");
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_11 — Edit Existing Campaign
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_11: Edit ────────────────────────────────────────────────────────
 
     @Test(
-        priority = 14,
+        priority = 11,
         description = "CM_TC_11: Edit an existing campaign — update name and description",
-        dependsOnMethods = { "createCampaignInstagram" }
+        dependsOnMethods = {"createCampaign"}
     )
     public void editExistingCampaign() {
         logger.info("===== [CM_TC_11] START: Edit Campaign =====");
 
-        DashboardPage    dashboardPage    = new DashboardPage(driver);
-        CampaignsPage    campaignsPage    = new CampaignsPage(driver);
-        NewCampaignsPage editCampaignPage = new NewCampaignsPage(driver);
+        navigateToCampaignsList("CM_TC_11");
 
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
+        logger.info("[CM_TC_11] Clicking Edit on: '{}'", campaignNameInstagram);
+        campaignsPage.clickEditCampaign(campaignNameInstagram);
 
-        logger.info("[CM_TC_11] Clicking Edit on campaign: '{}'", CAMPAIGN_NAME_INSTAGRAM);
-        campaignsPage.clickEditCampaign(CAMPAIGN_NAME_INSTAGRAM);
-
-        // URL should be /campaigns/edit/{id}
-        wait.until(ExpectedConditions.urlContains("campaigns/edit"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("campaigns/edit"),
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_EDIT_CAMPAIGN));
+        Assert.assertTrue(driver.getCurrentUrl().contains(AppConstants.PATH_EDIT_CAMPAIGN),
             "[CM_TC_11] Expected edit URL but got: " + driver.getCurrentUrl());
 
-        // Wait for Angular form to fetch and populate existing values from the backend API
-        editCampaignPage.waitForFormToPopulate();
+        newCampaignsPage.waitForFormToPopulate();
 
-        String updatedName = CAMPAIGN_NAME_INSTAGRAM + " [EDITED]";
-        logger.info("[CM_TC_11] Updating campaign name to: '{}'", updatedName);
-        editCampaignPage.setCampaignName(updatedName);
-        editCampaignPage.setCampaignDescription("Updated description for the edited Instagram campaign.");
+        String updatedName = campaignNameInstagram + editNameSuffix;
+        logger.info("[CM_TC_11] Updating name to: '{}'", updatedName);
+        newCampaignsPage.setCampaignName(updatedName);
+        newCampaignsPage.setCampaignDescription(editDescription);
 
-        logger.info("[CM_TC_11] Submitting the edit");
-        editCampaignPage.clickCreateCampaignSubmit();
+        newCampaignsPage.clickCreateCampaignSubmit();
 
-        // On success the app routes back to /campaigns
-        wait.until(ExpectedConditions.urlMatches(".*/campaigns$"));
-        Assert.assertTrue(driver.getCurrentUrl().endsWith("/campaigns"),
+        wait.until(ExpectedConditions.urlMatches(AppConstants.URL_REGEX_CAMPAIGNS_LIST));
+        Assert.assertTrue(driver.getCurrentUrl().endsWith("/" + AppConstants.PATH_CAMPAIGNS),
             "[CM_TC_11] Expected to return to /campaigns after edit, got: " + driver.getCurrentUrl());
+
+        // Reflect the rename so any future reference uses the correct name.
+        campaignNameInstagram = updatedName;
+        logger.info("[CM_TC_11] Instagram campaign is now named: '{}'", campaignNameInstagram);
 
         logger.info("===== [CM_TC_11] END: Edit Campaign — PASSED =====");
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // CM_TC_12 — Delete Campaign
-    // ══════════════════════════════════════════════════════════════════════════════
+    // ── CM_TC_12: Delete ─────────────────────────────────────────────────────
 
     @Test(
-        priority = 15,
-        description = "CM_TC_12: Delete a campaign — confirm dialog and verify removal from list",
-        dependsOnMethods = { "createCampaignTikTok" }
+        priority = 12,
+        description = "CM_TC_12: Delete a campaign and verify it is removed from the list",
+        dependsOnMethods = {"createCampaign"}
     )
     public void deleteCampaign() {
         logger.info("===== [CM_TC_12] START: Delete Campaign =====");
 
-        DashboardPage dashboardPage = new DashboardPage(driver);
-        CampaignsPage campaignsPage = new CampaignsPage(driver);
+        navigateToCampaignsList("CM_TC_12");
 
-        dashboardPage.clickCampaignsBtn();
-        wait.until(ExpectedConditions.urlContains("campaigns"));
-        campaignsPage.waitForListToLoad();
-
-        logger.info("[CM_TC_12] Overriding window.confirm to auto-accept delete confirmation");
+        /*
+         * Override the browser's confirm() so it always returns true.
+         * The app uses a native browser dialog for delete confirmation.
+         * This must be done BEFORE clicking delete — the override does not persist
+         * across navigation since the driver.get() above has already completed.
+         */
         ((JavascriptExecutor) driver).executeScript("window.confirm = function() { return true; };");
+        logger.info("[CM_TC_12] Browser confirm() overridden to auto-accept");
 
-        logger.info("[CM_TC_12] Clicking Delete on campaign: '{}'", CAMPAIGN_NAME_TIKTOK);
-        campaignsPage.clickDeleteCampaign(CAMPAIGN_NAME_TIKTOK);
+        logger.info("[CM_TC_12] Clicking Delete on: '{}'", campaignNameTikTok);
+        campaignsPage.clickDeleteCampaign(campaignNameTikTok);
 
-        // Wait for the campaign to disappear from the list (up to 10 seconds)
-        boolean deleted = false;
-        for (int i = 0; i < 10; i++) {
-            if (!campaignsPage.isCampaignVisible(CAMPAIGN_NAME_TIKTOK)) {
-                deleted = true;
-                break;
-            }
-            logger.info("[CM_TC_12] Campaign is still visible. Waiting for refresh... (Attempt {})", i + 1);
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-        }
-        Assert.assertTrue(deleted,
-            "[CM_TC_12] Campaign '" + CAMPAIGN_NAME_TIKTOK
-                + "' should have been deleted but is still visible in the list.");
+        // Wait via FluentWait instead of a Thread.sleep polling loop.
+        campaignsPage.waitForCampaignToDisappear(campaignNameTikTok);
+        Assert.assertFalse(campaignsPage.isCampaignVisible(campaignNameTikTok),
+            "[CM_TC_12] Campaign '" + campaignNameTikTok + "' should have been deleted but is still visible.");
 
-        logger.info("[CM_TC_12] Campaign '{}' successfully deleted", CAMPAIGN_NAME_TIKTOK);
+        logger.info("[CM_TC_12] Campaign '{}' successfully deleted", campaignNameTikTok);
         logger.info("===== [CM_TC_12] END: Delete Campaign — PASSED =====");
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Navigates to the campaigns list and waits for it to fully load.
+     * Every campaign test starts here to ensure a known page state.
+     *
+     * @param callerTestID test case ID used in log messages
+     */
+    private void navigateToCampaignsList(String callerTestID) {
+        dashboardPage.clickCampaignsBtn();
+        wait.until(ExpectedConditions.urlContains(AppConstants.PATH_CAMPAIGNS));
+        campaignsPage.waitForListToLoad();
+        logger.info("[{}] Campaigns list loaded", callerTestID);
     }
 }

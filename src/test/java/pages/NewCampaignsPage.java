@@ -4,11 +4,14 @@ import base.BasePage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Wait;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,64 +20,44 @@ public class NewCampaignsPage extends BasePage {
 
     private static final Logger logger = LogManager.getLogger(NewCampaignsPage.class);
 
-    public NewCampaignsPage(WebDriver driver) {
-        super(driver);
+    public NewCampaignsPage(WebDriver driver, Wait<WebDriver> wait) {
+        super(driver, wait);
     }
 
-    // ─── Form Fields ───────────────────────────────────────────────────────────
+    // ── Locators ─────────────────────────────────────────────────────────────
 
     @FindBy(xpath = "//input[@placeholder='Enter campaign name']")
-    WebElement campaignName;
+    private WebElement campaignName;
 
     @FindBy(xpath = "//textarea[@placeholder='Describe your campaign']")
-    WebElement campaignDescription;
+    private WebElement campaignDescription;
 
-    /**
-     * Stable XPath for startDate — uses formcontrolname attribute which is
-     * part of the Angular reactive form definition and does NOT change on reload.
-     * Falls back to a position-based input selector inside the start-date form field.
-     */
     private final By campaignStartDateLocator = By.xpath(
         "//mat-form-field[.//label[contains(., 'Start Date')] or .//mat-label[contains(., 'Start Date')]]//input"
     );
 
-    /**
-     * Stable XPath for endDate — same stable formcontrolname strategy.
-     */
     private final By campaignEndDateLocator = By.xpath(
         "//mat-form-field[.//label[contains(., 'End Date')] or .//mat-label[contains(., 'End Date')]]//input"
     );
 
     @FindBy(xpath = "//mat-select[@formcontrolname='platform']")
-    WebElement campaignPlatformDD;
+    private WebElement campaignPlatformDD;
 
     @FindBy(xpath = "//input[@placeholder='Enter budget']")
-    WebElement campaignBudget;
+    private WebElement campaignBudget;
 
-    /**
-     * Stable XPath for eligibility textarea — uses formcontrolname attribute.
-     */
-    private final By campaignEligibilityLocator = By.xpath(
-        "//textarea[@formcontrolname='eligibility']"
-    );
-
-    // ─── Buttons ───────────────────────────────────────────────────────────────
+    private final By campaignEligibilityLocator = By.xpath("//textarea[@formcontrolname='eligibility']");
 
     @FindBy(xpath = "//button[@type='submit' or .//span[normalize-space()='Create Campaign' or normalize-space()='Update Campaign']]")
-    WebElement createCampaignSubmitBtn;
+    private WebElement submitBtn;
 
     @FindBy(xpath = "//button[normalize-space()='Cancel']")
-    WebElement campaignCancelBtn;
-
-    // ─── Snack-bar ─────────────────────────────────────────────────────────────
+    private WebElement cancelBtn;
 
     private final By snackBarLocator = By.cssSelector(".mdc-snackbar__label");
-
-    // ─── Form Validation Error ─────────────────────────────────────────────────
-
     private final By matErrorLocator = By.cssSelector("mat-error");
 
-    // ─── Public API ────────────────────────────────────────────────────────────
+    // ── Field setters ────────────────────────────────────────────────────────
 
     public void setCampaignName(String name) {
         WebElement field = wait.until(ExpectedConditions.visibilityOf(campaignName));
@@ -83,10 +66,14 @@ public class NewCampaignsPage extends BasePage {
         logger.info("Set campaign name: {}", name);
     }
 
+    /**
+     * Blocks until the campaign name field contains a non-empty value.
+     * Use after navigating to an edit form where Angular pre-fills existing data asynchronously.
+     */
     public void waitForFormToPopulate() {
         WebElement field = wait.until(ExpectedConditions.visibilityOf(campaignName));
-        wait.until(driver -> !field.getAttribute("value").trim().isEmpty());
-        logger.info("Form has finished loading. Campaign name field populated with: {}", field.getAttribute("value"));
+        wait.until(d -> !field.getAttribute("value").trim().isEmpty());
+        logger.info("Edit form populated. Campaign name: '{}'", field.getAttribute("value"));
     }
 
     public void setCampaignDescription(String description) {
@@ -96,30 +83,33 @@ public class NewCampaignsPage extends BasePage {
         logger.info("Set campaign description");
     }
 
+    /**
+     * Types a date into a datepicker input, then waits for Angular's two-way binding
+     * to reflect the value back — replacing the fragile Thread.sleep that was here before.
+     */
     public void setCampaignStartDate(String date) {
         WebElement field = wait.until(ExpectedConditions.visibilityOfElementLocated(campaignStartDateLocator));
-        field.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), org.openqa.selenium.Keys.DELETE);
+        field.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
         field.sendKeys(date);
-        field.sendKeys(org.openqa.selenium.Keys.TAB);
-        try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        field.sendKeys(Keys.TAB);
+        wait.until(d -> !field.getAttribute("value").isEmpty());
         logger.info("Set start date: {}", date);
     }
 
     public void setCampaignEndDate(String date) {
         WebElement field = wait.until(ExpectedConditions.visibilityOfElementLocated(campaignEndDateLocator));
-        field.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), org.openqa.selenium.Keys.DELETE);
+        field.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
         field.sendKeys(date);
-        field.sendKeys(org.openqa.selenium.Keys.TAB);
-        try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        field.sendKeys(Keys.TAB);
+        wait.until(d -> !field.getAttribute("value").isEmpty());
         logger.info("Set end date: {}", date);
     }
 
     public void setCampaignPlatform(String platform) {
-        WebElement dd = wait.until(ExpectedConditions.visibilityOf(campaignPlatformDD));
-        WebElement trigger = dd.findElement(By.xpath(".//div[contains(@class,'select-trigger') or contains(@class,'select-arrow-wrapper')]"));
-        wait.until(ExpectedConditions.elementToBeClickable(trigger)).click();
-        String optionXpath = String.format("//mat-option[normalize-space()='%s']", platform);
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath(optionXpath))).click();
+        // Click the mat-select directly — no need to hunt for an inner trigger sub-element.
+        wait.until(ExpectedConditions.elementToBeClickable(campaignPlatformDD)).click();
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//mat-option[normalize-space()='" + platform + "']"))).click();
         logger.info("Selected platform: {}", platform);
     }
 
@@ -137,40 +127,45 @@ public class NewCampaignsPage extends BasePage {
         logger.info("Set eligibility requirements");
     }
 
+    // ── Submit / Cancel ──────────────────────────────────────────────────────
+
+    /**
+     * Attempts to click the submit button, waiting up to 2 seconds for it to become enabled.
+     * If the button remains disabled (e.g. form validation errors), it skips the click cleanly.
+     */
     public void clickCreateCampaignSubmit() {
-        WebElement btn = wait.until(ExpectedConditions.visibilityOf(createCampaignSubmitBtn));
-        if (btn.isEnabled() && btn.getAttribute("disabled") == null) {
-            try {
-                btn.click();
-            } catch (Exception e) {
-                logger.warn("Normal click intercepted on submit, using JS click.");
-                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
-            }
-            logger.info("Clicked Create Campaign submit button");
-        } else {
-            logger.info("Create Campaign submit button is disabled due to invalid form data. Skipping click.");
+        clickSubmitOrSkipIfDisabled(submitBtn, "Create Campaign submit button");
+    }
+
+    /**
+     * Returns {@code true} if the submit button is currently visible AND enabled.
+     * Performs an immediate state check — does NOT wait for it to become enabled.
+     */
+    public boolean isSubmitEnabled() {
+        try {
+            return submitBtn.isDisplayed() && submitBtn.isEnabled();
+        } catch (Exception e) {
+            return false;
         }
     }
 
     public void clickCancelBtn() {
-        WebElement btn = wait.until(ExpectedConditions.elementToBeClickable(campaignCancelBtn));
+        WebElement btn = wait.until(ExpectedConditions.elementToBeClickable(cancelBtn));
         try {
             btn.click();
-        } catch (Exception e) {
-            logger.warn("Normal click intercepted on cancel, using JS click.");
+        } catch (ElementClickInterceptedException e) {
+            logger.warn("Click intercepted on Cancel — falling back to JS click.");
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
         }
         logger.info("Clicked Cancel button");
     }
 
-    /**
-     * Returns the text from the Material snack-bar popup.
-     * Used to verify success/failure messages after form submission.
-     */
+    // ── Assertion helpers ────────────────────────────────────────────────────
+
     public String getSnackBarMessage() {
         try {
-            WebElement snackBar = wait.until(ExpectedConditions.visibilityOfElementLocated(snackBarLocator));
-            return snackBar.getText().trim();
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(snackBarLocator))
+                       .getText().trim();
         } catch (Exception e) {
             logger.error("Snack-bar did not appear within timeout.");
             return "";
@@ -178,8 +173,8 @@ public class NewCampaignsPage extends BasePage {
     }
 
     /**
-     * Returns all visible mat-error validation messages joined by " | ".
-     * Used for negative test cases where form submission is blocked.
+     * Returns all currently visible Angular Material inline validation errors,
+     * joined by " | ".  Returns an empty string if none are present.
      */
     public String getFormValidationErrors() {
         try {
@@ -197,8 +192,14 @@ public class NewCampaignsPage extends BasePage {
         }
     }
 
+    // ── Composite helper ─────────────────────────────────────────────────────
+
     /**
-     * Convenience method: fills all required fields and submits the campaign form.
+     * Fills every field in the campaign form and submits.
+     * {@code eligibility} may be {@code null} or blank — it will be skipped.
+     *
+     * <p>Internally calls {@link #clickCreateCampaignSubmit()} which waits for the button
+     * to become enabled before clicking — safe for positive test scenarios.
      */
     public void fillAndSubmitCampaign(String name, String description, String startDate,
                                       String endDate, String platform, String budget,
@@ -209,7 +210,7 @@ public class NewCampaignsPage extends BasePage {
         setCampaignEndDate(endDate);
         setCampaignPlatform(platform);
         setCampaignBudget(budget);
-        if (eligibility != null && !eligibility.isEmpty()) {
+        if (eligibility != null && !eligibility.isBlank()) {
             setCampaignEligibilityReq(eligibility);
         }
         clickCreateCampaignSubmit();
